@@ -94,9 +94,9 @@ app.post("/webhook", async (req, res) => {
 
         // ❗ กันกดซ้ำ
         if (item.status !== "รออนุมัติ") {
-          await reply(event.replyToken, "⚠️ รายการนี้ถูกดำเนินการแล้ว");
-          return;
-        }
+  await reply(event.replyToken, "⚠️ รายการนี้ถูกดำเนินการแล้ว");
+  return;
+}
 
         if (action === "approve") {
           item.status = "อนุมัติแล้ว";
