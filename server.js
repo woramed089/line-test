@@ -57,18 +57,18 @@ app.post("/send", async (req, res) => {
 📄 ${type}
 📅 ${start} - ${end}
 📝 ${reason}`,
-            actions: [
-              {
-                type: "uri",
-                label: "✅ อนุมัติ",
-                uri: `https://line-test-g5d0.onrender.com/approve/${id}`
-              },
-              {
-                type: "uri",
-                label: "❌ ปฏิเสธ",
-                uri: `https://line-test-g5d0.onrender.com/reject/${id}`
-              }
-            ]
+           actions: [
+  {
+    type: "postback",
+    label: "✅ อนุมัติ",
+    data: `approve:${id}`
+  },
+  {
+    type: "postback",
+    label: "❌ ปฏิเสธ",
+    data: `reject:${id}`
+  }
+]
           }
         }
       ]
@@ -124,3 +124,47 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log("Server running");
 });
+
+app.post("/webhook", async (req, res) => {
+  const events = req.body.events;
+
+  for (let event of events) {
+    if (event.type === "postback") {
+      const data = event.postback.data;
+
+      const [action, id] = data.split(":");
+
+      const item = requests.find(r => r.id == id);
+
+      if (item) {
+        if (action === "approve") {
+          item.status = "อนุมัติแล้ว";
+
+          await reply(event.replyToken, `✅ อนุมัติแล้ว\n👤 ${item.name}`);
+        }
+
+        if (action === "reject") {
+          item.status = "ไม่อนุมัติ";
+
+          await reply(event.replyToken, `❌ ไม่อนุมัติ\n👤 ${item.name}`);
+        }
+      }
+    }
+  }
+
+  res.sendStatus(200);
+});
+
+async function reply(replyToken, msg) {
+  await fetch("https://api.line.me/v2/bot/message/reply", {
+    method: "POST",
+    headers: {
+      "Authorization": "Bearer " + LINE_TOKEN,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      replyToken,
+      messages: [{ type: "text", text: msg }]
+    })
+  });
+}
