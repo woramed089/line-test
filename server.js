@@ -61,12 +61,12 @@ app.post("/send", async (req, res) => {
               {
                 type: "uri",
                 label: "✅ อนุมัติ",
-                uri: `https://abc123.ngrok-free.app/approve/${id}`
+                uri: `https://line-test.onrender.com/approve/${id}`
               },
               {
                 type: "uri",
                 label: "❌ ปฏิเสธ",
-                uri: `https://abc123.ngrok-free.app/reject/${id}`
+                uri: `https://line-test.onrender.com/reject/${id}`
               }
             ]
           }
