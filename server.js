@@ -2,11 +2,11 @@ const express = require("express");
 const fetch = require("node-fetch");
 
 const app = express();
-app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-const LINE_TOKEN = "KdwbNzqvGgSAI8sbXcf9u3/T7T79JDUtZRBchCRLElK0TJE9GDs6uiqXVqMZBN02xLRGu5SI1JUgEEcBjPmq6hKvhJQLTJZFA+CpGpTm26U+kwkBjVOaum/70Ahdk3NL36iJRrY1bwCKovv26q2XFAdB04t89/1O/w1cDnyilFU=";
-const USER_ID = "C8f9e07b960f9c23c5445c3f8faf71ce8";
+const LINE_TOKEN = "ใส่ CHANNEL ACCESS TOKEN";
+const GROUP_ID = "C8f9e07b960f9c23c5445c3f8faf71ce8";
 
 let requests = [];
 
@@ -36,7 +36,6 @@ app.post("/send", async (req, res) => {
     status: "รออนุมัติ"
   });
 
-  // 🔥 ส่งแบบมีปุ่ม
   await fetch("https://api.line.me/v2/bot/message/push", {
     method: "POST",
     headers: {
@@ -44,7 +43,7 @@ app.post("/send", async (req, res) => {
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      to: USER_ID,
+      to: GROUP_ID,
       messages: [
         {
           type: "template",
@@ -57,78 +56,33 @@ app.post("/send", async (req, res) => {
 📄 ${type}
 📅 ${start} - ${end}
 📝 ${reason}`,
-           actions: [
-  {
-    type: "postback",
-    label: "✅ อนุมัติ",
-    data: `approve:${id}`
-  },
-  {
-    type: "postback",
-    label: "❌ ปฏิเสธ",
-    data: `reject:${id}`
-  }
-]
+            actions: [
+              {
+                type: "postback",
+                label: "✅ อนุมัติ",
+                data: `approve:${id}`
+              },
+              {
+                type: "postback",
+                label: "❌ ปฏิเสธ",
+                data: `reject:${id}`
+              }
+            ]
           }
         }
       ]
     })
   });
 
-  res.send("✅ ส่งแล้ว (ไปกดใน LINE)");
+  res.send("✅ ส่งแล้ว");
 });
 
-// ================= APPROVE =================
-app.get("/approve/:id", async (req, res) => {
-  const item = requests.find(r => r.id == req.params.id);
-
-  if (item) {
-    item.status = "อนุมัติแล้ว";
-
-    await sendLine(`✅ อนุมัติแล้ว\n👤 ${item.name}`);
-  }
-
-  res.send("อนุมัติเรียบร้อย");
-});
-
-// ================= REJECT =================
-app.get("/reject/:id", async (req, res) => {
-  const item = requests.find(r => r.id == req.params.id);
-
-  if (item) {
-    item.status = "ไม่อนุมัติ";
-
-    await sendLine(`❌ ไม่อนุมัติ\n👤 ${item.name}`);
-  }
-
-  res.send("ปฏิเสธแล้ว");
-});
-
-// ================= SEND LINE =================
-async function sendLine(msg) {
-  await fetch("https://api.line.me/v2/bot/message/push", {
-    method: "POST",
-    headers: {
-      "Authorization": "Bearer " + LINE_TOKEN,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      to: USER_ID,
-      messages: [{ type: "text", text: msg }]
-    })
-  });
-}
-
-const PORT = process.env.PORT || 3000;
-
-app.listen(PORT, () => {
-  console.log("Server running");
-});
-
+// ================= WEBHOOK =================
 app.post("/webhook", async (req, res) => {
   const events = req.body.events;
 
   for (let event of events) {
+
     if (event.type === "postback") {
       const data = event.postback.data;
 
@@ -137,16 +91,28 @@ app.post("/webhook", async (req, res) => {
       const item = requests.find(r => r.id == id);
 
       if (item) {
+
+        // ❗ กันกดซ้ำ
+        if (item.status !== "รออนุมัติ") {
+          await reply(event.replyToken, "⚠️ รายการนี้ถูกดำเนินการแล้ว");
+          return;
+        }
+
         if (action === "approve") {
           item.status = "อนุมัติแล้ว";
 
-          await reply(event.replyToken, `✅ อนุมัติแล้ว\n👤 ${item.name}`);
+          await reply(event.replyToken,
+`✅ อนุมัติแล้ว
+👤 ${item.name}
+📄 ${item.type}`);
         }
 
         if (action === "reject") {
           item.status = "ไม่อนุมัติ";
 
-          await reply(event.replyToken, `❌ ไม่อนุมัติ\n👤 ${item.name}`);
+          await reply(event.replyToken,
+`❌ ไม่อนุมัติ
+👤 ${item.name}`);
         }
       }
     }
@@ -155,6 +121,7 @@ app.post("/webhook", async (req, res) => {
   res.sendStatus(200);
 });
 
+// ================= REPLY =================
 async function reply(replyToken, msg) {
   await fetch("https://api.line.me/v2/bot/message/reply", {
     method: "POST",
@@ -168,3 +135,9 @@ async function reply(replyToken, msg) {
     })
   });
 }
+
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+  console.log("Server running");
+});
