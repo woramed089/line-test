@@ -61,12 +61,12 @@ app.post("/send", async (req, res) => {
               {
                 type: "uri",
                 label: "✅ อนุมัติ",
-                uri: `https://line-test.onrender.com/approve/${id}`
+                uri: `https://line-test-g5d0.onrender.com/approve/${id}`
               },
               {
                 type: "uri",
                 label: "❌ ปฏิเสธ",
-                uri: `https://line-test.onrender.com/reject/${id}`
+                uri: `https://line-test-g5d0.onrender.com/reject/${id}`
               }
             ]
           }
